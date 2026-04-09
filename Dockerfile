@@ -16,7 +16,7 @@ RUN npm install --omit=dev
 
 COPY --from=builder /app/dist ./dist
 COPY schema.json .
-COPY swagger.json .
+COPY postman-collection.json .
 
 EXPOSE 3000
 
