@@ -1,19 +1,23 @@
-FROM node:20
-
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-
 RUN npm install
 
 COPY . .
+RUN npm run build
+
+# Production stage
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --omit=dev
+
+COPY --from=builder /app/dist ./dist
+COPY schema.json .
+COPY swagger.json .
 
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
-#: Thực tế dự án ko run ở đây
-#: B1: Tạo dockerfile tương ứng
-#: B2: Build Image (build lại toàn bộ môi trường) - docker build . (tự động tìm file Docker để làm việc)
-#: 
-
-
+CMD ["sh", "-c", "node dist/db/migrate.js && node dist/index.js"]
