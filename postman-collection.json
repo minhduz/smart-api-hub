@@ -1,0 +1,272 @@
+{
+  "info": {
+    "title": "PG JSON Server API",
+    "version": "1.0.0",
+    "description": "API documentation for Long Assignment"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Authentication endpoints" },
+    { "name": "Resource", "description": "Dynamic resource CRUD endpoints" }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register new user",
+        "tags": ["Auth"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "test@gmail.com" },
+                  "password": { "type": "string", "example": "123456" },
+                  "name": { "type": "string", "example": "John Doe" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "email": "test@gmail.com",
+                  "name": "John Doe",
+                  "role": "user"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already exists",
+            "content": {
+              "application/json": {
+                "example": { "error": "Email already exists" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Login user",
+        "tags": ["Auth"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "test@gmail.com" },
+                  "password": { "type": "string", "example": "123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "example": {
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "user": {
+                    "id": 1,
+                    "email": "test@gmail.com",
+                    "role": "user"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password",
+            "content": {
+              "application/json": {
+                "example": { "error": "Invalid email or password" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{resource}": {
+      "get": {
+        "summary": "Get all resources",
+        "tags": ["Resource"],
+        "security": [],
+        "parameters": [
+          { "in": "path", "name": "resource", "required": true, "schema": { "type": "string" }, "example": "users" },
+          { "in": "query", "name": "_page", "schema": { "type": "integer" }, "example": 1 },
+          { "in": "query", "name": "_limit", "schema": { "type": "integer" }, "example": 10 },
+          { "in": "query", "name": "_sort", "schema": { "type": "string" }, "example": "id" },
+          { "in": "query", "name": "_order", "schema": { "type": "string", "enum": ["asc", "desc"] }, "example": "asc" },
+          { "in": "query", "name": "_fields", "schema": { "type": "string" }, "example": "id,email,role" },
+          { "in": "query", "name": "_expand", "schema": { "type": "string" }, "example": "users" },
+          { "in": "query", "name": "_embed", "schema": { "type": "string" }, "example": "posts" },
+          { "in": "query", "name": "q", "schema": { "type": "string" }, "example": "keyword" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "headers": {
+              "X-Total-Count": {
+                "schema": { "type": "integer" },
+                "description": "Total number of records"
+              }
+            },
+            "content": {
+              "application/json": {
+                "example": [
+                  { "id": 1, "email": "user@gmail.com", "role": "user" }
+                ]
+              }
+            }
+          },
+          "404": { "description": "Resource not found" }
+        }
+      },
+      "post": {
+        "summary": "Create a new resource",
+        "tags": ["Resource"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "path", "name": "resource", "required": true, "schema": { "type": "string" }, "example": "posts" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": { "title": "New Post", "content": "Content here", "user_id": 1 }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Resource created successfully" },
+          "401": { "description": "Unauthorized - Token required" }
+        }
+      }
+    },
+    "/{resource}/{id}": {
+      "get": {
+        "summary": "Get resource by ID",
+        "tags": ["Resource"],
+        "security": [],
+        "parameters": [
+          { "in": "path", "name": "resource", "required": true, "schema": { "type": "string" }, "example": "users" },
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resource fetched successfully",
+            "content": {
+              "application/json": {
+                "example": { "id": 1, "email": "user@gmail.com", "role": "user" }
+              }
+            }
+          },
+          "404": { "description": "Resource not found" }
+        }
+      },
+      "put": {
+        "summary": "Fully replace a resource",
+        "tags": ["Resource"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "path", "name": "resource", "required": true, "schema": { "type": "string" }, "example": "users" },
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": { "email": "fullupdate@gmail.com", "password": "123456", "role": "user" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Resource fully replaced" },
+          "401": { "description": "Unauthorized - Token required" },
+          "404": { "description": "Resource not found" }
+        }
+      },
+      "patch": {
+        "summary": "Partially update a resource",
+        "tags": ["Resource"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "path", "name": "resource", "required": true, "schema": { "type": "string" }, "example": "users" },
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "example": { "email": "updated@gmail.com" }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Resource partially updated" },
+          "401": { "description": "Unauthorized - Token required" },
+          "404": { "description": "Resource not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete resource (Admin only)",
+        "tags": ["Resource"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "in": "path", "name": "resource", "required": true, "schema": { "type": "string" }, "example": "users" },
+          { "in": "path", "name": "id", "required": true, "schema": { "type": "integer" }, "example": 1 }
+        ],
+        "responses": {
+          "200": { "description": "Resource deleted successfully" },
+          "401": { "description": "Unauthorized - Token required" },
+          "403": { "description": "Forbidden - Admin only" },
+          "404": { "description": "Resource not found" }
+        }
+      }
+    }
+  }
+}
