@@ -19,7 +19,7 @@ resourceRouter.get('/', cacheGet, catchAsync(getAll));
 resourceRouter.get('/:id', catchAsync(checkValidId), cacheGet, catchAsync(getById));
 
 // Authenticate
-resourceRouter.post('/' , invalidateCache,catchAsync(createResource));
+resourceRouter.post('/' , authenticate, invalidateCache,catchAsync(createResource));
 resourceRouter.put('/:id', authenticate, invalidateCache, catchAsync(checkValidId), catchAsync(updateResource));
 resourceRouter.patch('/:id', authenticate, invalidateCache, catchAsync(checkValidId), catchAsync(updateResource));
 
