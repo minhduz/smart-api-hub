@@ -2,12 +2,14 @@
 
 ## 📖 Overview
 
-This project is a backend API built with:
+This project is a dynamic REST API server — similar to `json-server` but powered by a real PostgreSQL database. It auto-generates CRUD endpoints from a `schema.json` file.
 
-- Node.js (Express + TypeScript)
-- PostgreSQL (via Docker)
-- Knex (Query Builder)
-- JWT Authentication
+Built with:
+
+- **Node.js** (Express + TypeScript)
+- **PostgreSQL** (via Docker)
+- **Knex** (Query Builder)
+- **JWT** Authentication
 
 ---
 
@@ -22,7 +24,11 @@ Make sure you have installed:
 
 ## ⚙️ 2. Environment Setup
 
-Create a `.env` file in root:
+Copy `.env.example` and fill in your values:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 PORT=3000
@@ -75,7 +81,11 @@ npm install
 DB_HOST=localhost
 ```
 
-### Step 3: Run PostgreSQL locally
+### Step 3: Run PostgreSQL locally (via Docker)
+
+```bash
+docker-compose up -d postgres
+```
 
 ### Step 4: Run migration
 
@@ -95,26 +105,65 @@ npm run dev
 
 - PostgreSQL runs on port `5432`
 - Database name: `pg_json_server`
+- Tables are auto-created from `schema.json` on first migration
 
 ---
 
 ## 🔐 6. Authentication
 
-- Uses JWT
-- Token expiration controlled via `.env`
+| Route | Method | Auth |
+|---|---|---|
+| `/auth/register` | POST | Public |
+| `/auth/login` | POST | Public |
+| `/:resource` | GET | Public |
+| `/:resource/:id` | GET | Public |
+| `/:resource` | POST | 🔒 Token required |
+| `/:resource/:id` | PUT/PATCH | 🔒 Token required |
+| `/:resource/:id` | DELETE | 👑 Admin only |
 
 ---
 
 ## 🧱 7. Project Structure
 
 ```
-src/
- ├── controllers/
- ├── db/
- ├── middlewares/
- ├── routes/
- ├── utils/
- └── index.ts
+Long Assignment/
+├── .vscode/
+│   └── launch.json           # VSCode debug config
+├── src/
+│   ├── config/
+│   │   └── swagger.ts        # Swagger setup
+│   ├── controllers/
+│   │   ├── auth.controller.ts
+│   │   └── resource.controller.ts
+│   ├── db/
+│   │   ├── knex.ts           # Knex connection
+│   │   └── migrate.ts        # Auto migration from schema.json
+│   ├── middlewares/
+│   │   ├── authenticate.ts   # JWT verify + role check
+│   │   ├── cache.ts          # In-memory GET cache (TTL 30s)
+│   │   ├── catchAsync.ts     # Async error wrapper
+│   │   ├── checkIsValidId.ts # ID validation
+│   │   ├── checkTable.ts     # Table existence check
+│   │   ├── globalErrorHandler.ts
+│   │   └── rateLimiter.ts    # 100 req/min/IP limiter
+│   ├── routes/
+│   │   ├── auth.route.ts
+│   │   └── resource.route.ts
+│   ├── utils/
+│   │   ├── hashPassword.ts   # bcrypt hash & compare
+│   │   ├── queryBuilder.ts   # Pagination, sort, filter, search, expand, embed
+│   │   └── tableValidator.ts # information_schema check
+│   └── index.ts              # Entry point
+├── .env
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── Dockerfile
+├── nodemon.json
+├── package.json
+├── schema.json               # Table definitions for auto-migration
+├── swagger.json              # API documentation
+└── tsconfig.json
 ```
 
 ---
@@ -123,23 +172,78 @@ src/
 
 ```mermaid
 graph TD
+    Client[👤 Client]
 
-User[👤 Client] -->|HTTP Request| API[Node.js Express API]
+    subgraph Middlewares
+        RL[Rate Limiter\n100 req/min/IP]
+        Auth[JWT Authenticate]
+        Admin[Admin Guard]
+        Cache[Cache Layer\nTTL 30s]
+        CT[Check Table]
+        CI[Check Valid ID]
+    end
 
-API -->|JWT Auth| Auth[Auth Middleware]
+    subgraph Controllers
+        AC[Auth Controller\nregister / login]
+        RC[Resource Controller\ngetAll / getById / create / update / delete]
+    end
 
-API -->|Query| Knex[Knex Query Builder]
+    subgraph Utils
+        QB[Query Builder\npagination, sort, filter\nsearch, expand, embed]
+        HP[Hash Password\nbcrypt]
+        TV[Table Validator\ninformation_schema]
+    end
 
-Knex -->|SQL| DB[(PostgreSQL Database)]
+    subgraph Database
+        Knex[Knex Query Builder]
+        PG[(PostgreSQL)]
+    end
 
-DB -->|Data| Knex
-Knex --> API
-API -->|JSON Response| User
+    Client -->|Every Request| RL
+    RL -->|POST /auth| AC
+    RL -->|GET /:resource| Cache
+    Cache -->|HIT| Client
+    Cache -->|MISS| CT
+    CT -->|404 if not exists| Client
+    CT -->|GET| CI
+    CI --> RC
+
+    RL -->|POST/PUT/PATCH| Auth
+    Auth -->|401 if no token| Client
+    Auth -->|DELETE| Admin
+    Admin -->|403 if not admin| Client
+    Admin --> CT
+
+    AC --> HP
+    AC --> Knex
+    RC --> QB
+    QB --> Knex
+    Knex --> PG
+    PG --> Knex
+    Knex --> RC
+    RC -->|JSON Response| Client
 ```
 
 ---
 
-## 🔄 9. Development Scripts
+## 🔍 9. Query Features
+
+| Feature | Example |
+|---|---|
+| Pagination | `?_page=1&_limit=10` |
+| Sorting | `?_sort=name&_order=desc` |
+| Field select | `?_fields=id,email,role` |
+| Filter | `?role=admin` |
+| Range filter | `?id_gte=2&id_lte=5` |
+| Not equal | `?role_ne=admin` |
+| Like search | `?name_like=duc` |
+| Full text search | `?q=keyword` |
+| Expand parent | `?_expand=users` |
+| Embed children | `?_embed=posts` |
+
+---
+
+## 🔄 10. Development Scripts
 
 ```json
 "scripts": {
@@ -152,39 +256,50 @@ API -->|JSON Response| User
 
 ---
 
-## 🧪 10. Testing API
+## 🧪 11. Testing API
 
-You can test using:
-
-- Postman
-- Thunder Client (VSCode)
+- **Swagger UI**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- **Postman**: Import `postman-collection.json` from the root
 
 ---
 
-## ⚠️ 11. Common Issues
+## ⚠️ 12. Common Issues
 
 ### ❌ Cannot connect to DB
 
-- Check `DB_HOST`
-  - Docker: `postgres`
-  - Local: `localhost`
+- Check `DB_HOST` in `.env`:
+  - Docker: `DB_HOST=postgres`
+  - Local: `DB_HOST=localhost`
 
 ### ❌ Port already in use
 
 ```bash
+# Check what's using the port
 lsof -i :5432
+lsof -i :3000
+```
+
+### ❌ Migration not running
+
+```bash
+# Run manually
+npm run migrate
+
+# Or inside Docker
+docker exec -it node_app npm run migrate
 ```
 
 ---
 
-## 📌 12. Notes
+## 📌 13. Notes
 
-- Docker volume is used to persist PostgreSQL data
-- `.env` is shared between services
-- Migration must be run manually after container starts
+- Docker volume is used to persist PostgreSQL data across restarts
+- `.env` is never committed — use `.env.example` as reference
+- Migration is idempotent — safe to run multiple times (skips existing tables)
+- Cache is in-memory and resets on server restart
 
 ---
 
 ## 👨‍💻 Author
 
-- Your Name
+- Nguyen Minh Duc (DucNM158)
