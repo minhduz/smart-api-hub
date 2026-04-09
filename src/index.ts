@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import { db } from './db/knex';
 import {runMigration} from './db/migrate'
+import cors from 'cors';
 
 // Router import
 import authRouter from './routes/auth.route'
@@ -14,6 +15,7 @@ import { swaggerSpec } from './config/swagger';
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.use(rateLimiter);
 
