@@ -13,6 +13,16 @@ Built with:
 
 ---
 
+## 🌐 Live Demo
+
+**Deployed on Render:** [https://smart-api-hub-45fu.onrender.com](https://smart-api-hub-45fu.onrender.com)
+
+- **Swagger UI:** [https://smart-api-hub-45fu.onrender.com/api-docs](https://smart-api-hub-45fu.onrender.com/api-docs)
+
+> ⚠️ Note: The server may take ~30–60 seconds to wake up on first request (free tier cold start).
+
+---
+
 ## 🚀 1. Prerequisites
 
 Make sure you have installed:
@@ -258,8 +268,9 @@ graph TD
 
 ## 🧪 11. Testing API
 
-- **Swagger UI**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
-- **Postman**: Import `postman-collection.json` from the root
+- **Swagger UI (Local):** [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- **Swagger UI (Live):** [https://smart-api-hub-45fu.onrender.com/api-docs](https://smart-api-hub-45fu.onrender.com/api-docs)
+- **Postman:** Import `postman-collection.json` from the root
 
 ---
 
